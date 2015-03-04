@@ -5,7 +5,117 @@ configuration and system administration needs. You can also create your own
 Techniques, to implement new functionality or configure new services. This
 paragraph will walk you through this process.
 
-==== Prequisites
+There is two ways of configuring new Techniques, either thanks to the web Technique Editor in Rudder or by coding them by hand.
+
+Using the Technique Editor (code name: ncf-builder [http://www.ncf.io/pages/ncf-builder.html] is the easiest way of creating new Technique and is fully integrated with Rudder. On the other hand, it does not allow the same level of complexity and expressivness than coding a Technique by hand. Of course, coding new Technique by hand is a more involved process that need to learn how the Technique description language works.
+
+We advice to always start to try to create new Technique with the Technique Editor and switch to the hand-coding creation only if you discover specific needs not addressed that way.
+
+==== Recommanded solution: Technique Editor
+
+Easiest way to create your own Techniques is to use Technique editor,
+a web interface to create and manage Technique based on ncf.
+
+Creating a technique in Technique editor will generate a Technique for Rudder automatically
+that you can use as a Directive to apply on your Nodes.
+
+For more information about ncf and Technique editor, you can visit: http://www.ncf.io/
+
+===== Using the Technique Editor
+
+Technique Editor is available in the Directive screen or directly in the Utilities menu. Once on the Technique Editor, creating a Technique simply consist to add "generic method" building block and configuring them.
+
+
+When the Technique creation is completed, hitting save will automatically add it to available Technique in the Directive screen. 
+
+
+===== Logs 
+
+Error logs are sent into apache system error (ie, on debian, /var/log/apache2/error.log ).
+
+So if you have any issue please look into that file.
+
+
+===== Understanding how Technique Editor works
+
+In this chapter, we are giving an overwiew about how the Technique Editor works and how it is integrated with the main Rudder application. 
+
+====== Directory layout 
+
+ncf promises are located in two folders:
+
+* /usr/share/ncf/tree
+** This is the basic folder where the ncf package drop its promises.
+This folder will be completely overwritten when you update ncf package so you should never add anything here
+
+* /var/rudder/configuration-repository/ncf
+** This is were you have to add you own ncf generic methods and techniques.
+Techniques created with Technique editor will be located here.
+
+To share those folders to all nodes, Rudder makes a copy of these folders in /var/rudder/ncf:
+
+* local is a copy of /var/rudder/configuration-repository/ncf
+* common is a copy /usr/share/ncf/tree
+
+They are synchronized automatically by the agent running on the server, then they are copied by each node when they update their promises
+
+====== Technique editor integration with Rudder 
+
+Here we will explain Technique editor behavior and different requests.
+
+Technique editor make requests to an api defined over ncf, all of those requests are authentified.
+
+To be authenticated, you must be connected to rudder web interface in your browser.
+A JSESSIONID header is generated when you access to Rudder web interface.
+
+That header is shared to Technique editor interface, which himself pass the JSESSIONID header to all requests.
+
+So if you have authentication issue, Check that your Rudder session has not expired.
+
+Get requests::
+
+Get requests will get all techniques/generic methods in a path pased as parameters.
+
+They are triggered when accessing Technique editor.
+
+All files in that path will be parsed, by running cf-promises -pjson on all techniques,
+checking that all techniques are correctly formed.
+
+Post requests::
+
+Post requests (create/delete techniques) will modify availables techniques in the path available as parameter.
+
+They are triggered when clicking on save/delete button.
+
+The main difference with get requests is that hooks are launched before and after the action is made.
+
+We will see all hooks behavior in the dedicated hooks section.
+
+====== Hooks
+
+one each POST request, pre- and post- hooks are executed by Technique Editor. This hooks are used for the Rudder integration to help transform pure ncf Technique into Rudder one.
+
+Each POST request, pre- and post- hooks are executed by Technique Editor.
+This hooks are used for the Rudder integration to help transform pure ncf Technique into Rudder one
+
+As of March 2015, we have two post-hooks defined and no pre-hooks.
+
+They are located in /var/rudder/configuration-repository/ncf/post-hooks.d
+
+We have:
+
+* post.write_technique.commit.sh
+** It commits the technique newly created in /var/rudder/configuration-repository.
+* post.write_technique.rudderify.sh
+** It generates a valid Rudder technique from a the newly created technique and then reload Rudder technique library.
+
+To run post hooks just run the following command:
+
+      /var/rudder/configuration-repository/ncf/post-hooks.d/post.write_technique.commit.sh /var/rudder/configuration-repository bundle_name
+
+==== Create Technique manually
+
+===== Prequisites
 
 To create a Technique, you'll need a few things:
 
@@ -18,7 +128,7 @@ you'll need a working Rudder installation (at least a server and a node).
 
 Text editor:: The only other tool you need is your favorite text editor!
 
-==== Define your objective
+===== Define your objective
 
 Before starting to create a new Technique, have you checked that it doesn't
 already exist in Rudder? The full list of current Techniques is available from
@@ -50,7 +160,7 @@ to play here.
 At this stage, make a list of all the variables that should be presented to
 users configuring a Directive from your Technique.
 
-==== Initialize your new Technique
+===== Initialize your new Technique
 
 The simplest way to create a new Technique and be able to test it as you work is
 to start on a Rudder server. Open a terminal and connect to your Rudder server
@@ -135,31 +245,31 @@ include::technique-st-sample.xml
 
 ----
 
-===== Define variables
+====== Define variables
 
 *WORK IN PROGRESS*
 Define metadata.
 Enter the variables in sections in the metadata.xml file.
 Cf http://www.rudder-project.org/foswiki/Development/PolicyTemplateXML
 
-===== First test in the Rudder interface
+====== First test in the Rudder interface
 
 Load the new Technique into Rudder and check that the variables and sections are
 displayed as you expect.
 
-==== Implement the behavior
+===== Implement the behavior
 
 *WORK IN PROGRESS*
 Write CFEngine promises to implement the behavior that your Template should
 have.
 
-===== Read in the variables from Rudder
+====== Read in the variables from Rudder
 
 *WORK IN PROGRESS*
 Using StringTemplate notation...
 Cf http://www.rudder-project.org/foswiki/Development/Technique
 
-===== Add reporting
+====== Add reporting
 
 *WORK IN PROGRESS*
 The reports format
